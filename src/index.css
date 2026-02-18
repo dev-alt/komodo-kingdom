@@ -1,0 +1,372 @@
+@import url('https://fonts.googleapis.com/css2?family=Coda:wght@400;800&family=Changa+One&family=Quattrocento+Sans:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 120 24% 14%;
+    --foreground: 43 27% 93%;
+    --card: 120 20% 18%;
+    --card-foreground: 43 27% 93%;
+    --popover: 120 20% 18%;
+    --popover-foreground: 43 27% 93%;
+    --primary: 20 100% 59%;
+    --primary-foreground: 43 27% 93%;
+    --secondary: 120 10% 25%;
+    --secondary-foreground: 43 27% 93%;
+    --muted: 120 10% 25%;
+    --muted-foreground: 120 8% 72%;
+    --accent: 20 100% 59%;
+    --accent-foreground: 43 27% 93%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 120 10% 25%;
+    --input: 120 10% 25%;
+    --ring: 20 100% 59%;
+    --radius: 1.25rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Quattrocento Sans', sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Typography */
+.font-display {
+  font-family: 'Coda', sans-serif;
+}
+
+.font-accent {
+  font-family: 'Changa One', cursive;
+}
+
+.font-body {
+  font-family: 'Quattrocento Sans', sans-serif;
+}
+
+/* Card Styles */
+.card-base {
+  @apply relative rounded-[28px] border-4 border-[#F3EFE6] overflow-hidden;
+  box-shadow: 0 18px 0 rgba(0,0,0,0.35), inset 0 0 0 2px rgba(0,0,0,0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-base:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 22px 0 rgba(0,0,0,0.38), inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+
+.card-base:active {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.45), inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+
+/* Card Rarity Glows */
+.card-common {
+  border-color: #B8C1B8;
+}
+
+.card-uncommon {
+  border-color: #4ADE80;
+  box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 20px rgba(74, 222, 128, 0.3), inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+
+.card-rare {
+  border-color: #60A5FA;
+  box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 30px rgba(96, 165, 250, 0.4), inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+
+.card-epic {
+  border-color: #A78BFA;
+  box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 40px rgba(167, 139, 250, 0.5), inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+
+.card-legendary {
+  border-color: #FF6F2C;
+  box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 50px rgba(255, 111, 44, 0.6), inset 0 0 0 2px rgba(0,0,0,0.35);
+  animation: legendaryPulse 3s ease-in-out infinite;
+}
+
+@keyframes legendaryPulse {
+  0%, 100% { box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 50px rgba(255, 111, 44, 0.6), inset 0 0 0 2px rgba(0,0,0,0.35); }
+  50% { box-shadow: 0 18px 0 rgba(0,0,0,0.35), 0 0 70px rgba(255, 111, 44, 0.8), inset 0 0 0 2px rgba(0,0,0,0.35); }
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply bg-[#FF6F2C] text-[#F3EFE6] border-[3px] border-[#F3EFE6] px-8 py-4 rounded-xl font-display font-bold text-lg uppercase tracking-wider;
+  box-shadow: 0 6px 0 rgba(0,0,0,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 rgba(0,0,0,0.38);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.45);
+}
+
+/* Grain Overlay */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Card Flip Animation */
+.card-flip-container {
+  perspective: 1000px;
+}
+
+.card-flip {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-flip.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+/* Pack Opening Animation */
+@keyframes packShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.pack-shake {
+  animation: packShake 0.15s ease-in-out 3;
+}
+
+@keyframes cardBurst {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(var(--rotation)); opacity: 1; }
+  100% { transform: scale(1) rotate(var(--rotation)); opacity: 1; }
+}
+
+/* Stat Bar Animation */
+.stat-bar-fill {
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1B2B1B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FF6F2C;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #e56222;
+}
+
+/* 3D Card Tilt Effect */
+.card-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+}
+
+/* Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Rarity Badge Styles */
+.rarity-common { @apply bg-gray-500 text-white; }
+.rarity-uncommon { @apply bg-green-500 text-white; }
+.rarity-rare { @apply bg-blue-500 text-white; }
+.rarity-epic { @apply bg-purple-500 text-white; }
+.rarity-legendary { @apply bg-gradient-to-r from-orange-500 to-red-500 text-white; }
+
+/* Input Styles */
+.input-komodo {
+  @apply bg-[#243824] border-2 border-[#3a4a3a] rounded-xl px-4 py-3 text-[#F3EFE6] placeholder:text-[#B8C1B8] focus:outline-none focus:border-[#FF6F2C] transition-colors;
+}
+
+/* Quiz Option Styles */
+.quiz-option {
+  @apply bg-[#243824] border-2 border-[#3a4a3a] rounded-xl p-4 cursor-pointer transition-all hover:border-[#FF6F2C] hover:bg-[#2a422a];
+}
+
+.quiz-option.correct {
+  @apply border-green-500 bg-green-900/30;
+}
+
+.quiz-option.wrong {
+  @apply border-red-500 bg-red-900/30;
+}
+
+/* Section Backgrounds */
+.bg-jungle {
+  background: linear-gradient(180deg, #1B2B1B 0%, #243824 100%);
+}
+
+.bg-stone {
+  background: radial-gradient(ellipse at center, #243824 0%, #1B2B1B 70%);
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Slide In Animations */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(50px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.6s ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.6s ease-out forwards;
+}
+
+/* Scale Animation */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+/* Bounce Animation */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+/* Pulse Glow Animation */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 111, 44, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(255, 111, 44, 0.6); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Spin Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+/* Perspective for 3D effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Transform GPU acceleration */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth image loading */
+img {
+  transition: opacity 0.3s ease;
+}
+
+img[loading="lazy"] {
+  opacity: 0;
+}
+
+img[loading="lazy"].loaded,
+img:not([loading="lazy"]) {
+  opacity: 1;
+}
+
+/* Section animations */
+.animate-section {
+  opacity: 1;
+}
+
+.animate-card {
+  opacity: 1;
+}
