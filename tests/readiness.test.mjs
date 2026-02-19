@@ -28,3 +28,30 @@ test("SEO support files exist", async () => {
   await assert.doesNotReject(() => readFile("public/sitemap.xml"));
   await assert.doesNotReject(() => readFile("public/site.webmanifest"));
 });
+
+test("auth security contract is documented in README", async () => {
+  const readme = await readFile("README.md");
+
+  assert.match(readme, /Auth Security Contract/i);
+  assert.match(readme, /HttpOnly/i);
+  assert.match(readme, /CSRF/i);
+  assert.match(readme, /rate-limited/i);
+});
+
+test("env example includes telemetry context variables", async () => {
+  const envExample = await readFile(".env.example");
+
+  assert.match(envExample, /^VITE_APP_ENV=/m);
+  assert.match(envExample, /^VITE_APP_RELEASE=/m);
+});
+
+test("monitoring captures release and auth lifecycle events", async () => {
+  const monitoring = await readFile("src/lib/monitoring.ts");
+  const authContext = await readFile("src/context/AuthContext.tsx");
+
+  assert.match(monitoring, /release/i);
+  assert.match(monitoring, /environment/i);
+  assert.match(authContext, /trackEvent\("login_success"/);
+  assert.match(authContext, /trackEvent\("register_success"/);
+  assert.match(authContext, /trackEvent\("logout"/);
+});

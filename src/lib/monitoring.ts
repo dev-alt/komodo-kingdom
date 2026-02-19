@@ -1,6 +1,17 @@
 const MONITORING_ENDPOINT = import.meta.env.VITE_MONITORING_ENDPOINT;
+const APP_ENV = import.meta.env.VITE_APP_ENV ?? "development";
+const APP_RELEASE = import.meta.env.VITE_APP_RELEASE ?? "unknown";
 
-const reportError = (payload: Record<string, unknown>) => {
+interface MonitoringPayload {
+  type: string;
+  timestamp: string;
+  environment: string;
+  release: string;
+  route: string;
+  metadata?: Record<string, unknown>;
+}
+
+const report = (payload: MonitoringPayload) => {
   if (!MONITORING_ENDPOINT) {
     return;
   }
@@ -20,10 +31,22 @@ const reportError = (payload: Record<string, unknown>) => {
   });
 };
 
+const buildBasePayload = (type: string, metadata?: Record<string, unknown>): MonitoringPayload => ({
+  type,
+  timestamp: new Date().toISOString(),
+  environment: APP_ENV,
+  release: APP_RELEASE,
+  route: window.location.pathname,
+  metadata,
+});
+
+export const trackEvent = (type: string, metadata?: Record<string, unknown>) => {
+  report(buildBasePayload(type, metadata));
+};
+
 export const initMonitoring = () => {
   window.addEventListener("error", (event) => {
-    reportError({
-      type: "window_error",
+    trackEvent("window_error", {
       message: event.message,
       filename: event.filename,
       line: event.lineno,
@@ -39,9 +62,6 @@ export const initMonitoring = () => {
           ? event.reason
           : "Unknown rejection";
 
-    reportError({
-      type: "unhandled_rejection",
-      reason,
-    });
+    trackEvent("unhandled_rejection", { reason });
   });
 };
