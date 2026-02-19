@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import type { KomodoCard, User } from "@/types";
 import { loginRequest, logoutRequest, registerRequest, getCurrentUser } from "@/lib/authClient";
+import { trackEvent } from "@/lib/monitoring";
 
 interface AuthContextType {
   user: User | null;
@@ -33,10 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const session = await getCurrentUser();
         if (isMounted) {
           setUser(session.user);
+          trackEvent("session_restored", { userId: session.user.id });
         }
       } catch {
         if (isMounted) {
           setUser(null);
+          trackEvent("session_restore_failed");
         }
       } finally {
         if (isMounted) {
@@ -58,8 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const payload = await loginRequest(username, password);
       setUser(payload.user);
+      trackEvent("login_success", { userId: payload.user.id });
       return { success: true as const };
     } catch (error) {
+      trackEvent("login_failed", { reason: error instanceof Error ? error.message : "unknown" });
       return {
         success: false as const,
         error: error instanceof Error ? error.message : "Unable to sign in.",
@@ -71,8 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const payload = await registerRequest(username, email, password);
       setUser(payload.user);
+      trackEvent("register_success", { userId: payload.user.id });
       return { success: true as const };
     } catch (error) {
+      trackEvent("register_failed", { reason: error instanceof Error ? error.message : "unknown" });
       return {
         success: false as const,
         error: error instanceof Error ? error.message : "Unable to create account.",
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    trackEvent("logout");
     setUser(null);
   }, []);
 
