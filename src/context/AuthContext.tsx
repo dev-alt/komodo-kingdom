@@ -1,14 +1,19 @@
-import { createContext, useContext, useCallback, useEffect } from 'react';
-import type { User, KomodoCard } from '@/types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { getRandomCards, komodoCards } from '@/data/cards';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import type { KomodoCard, User } from "@/types";
+import { loginRequest, logoutRequest, registerRequest, getCurrentUser } from "@/lib/authClient";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
-  register: (username: string, email: string, password: string) => boolean;
-  logout: () => void;
+  isSessionLoading: boolean;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   addCardsToCollection: (cards: KomodoCard[]) => void;
   removeCardFromCollection: (cardId: string) => void;
   updateUserStats: (updates: Partial<User>) => void;
@@ -16,126 +21,128 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default test user
-const createTestUser = (): User => ({
-  id: 'test-user-id',
-  username: 'testuser',
-  email: 'test@example.com',
-  collection: komodoCards.slice(0, 6), // Give test user 6 starter cards
-  packsOpened: 2,
-  quizzesCompleted: 3,
-  correctAnswers: 7,
-});
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
 
-const defaultUsers = {
-  'testuser': { 
-    password: 'test123', 
-    user: createTestUser() 
-  }
-};
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useLocalStorage<User | null>('komodo-user', null);
-  const [users, setUsers] = useLocalStorage<Record<string, { password: string; user: User }>>('komodo-users', defaultUsers);
-
-  // Ensure test user exists
   useEffect(() => {
-    setUsers(prev => {
-      if (!prev['testuser']) {
-        return { ...prev, ...defaultUsers };
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const session = await getCurrentUser();
+        if (isMounted) {
+          setUser(session.user);
+        }
+      } catch {
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsSessionLoading(false);
+        }
       }
-      return prev;
-    });
+    };
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const isAuthenticated = !!user;
 
-  const login = useCallback((username: string, password: string): boolean => {
-    const userData = users[username.toLowerCase()];
-    if (userData && userData.password === password) {
-      setUser(userData.user);
-      return true;
+  const login = useCallback(async (username: string, password: string) => {
+    try {
+      const payload = await loginRequest(username, password);
+      setUser(payload.user);
+      return { success: true as const };
+    } catch (error) {
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : "Unable to sign in.",
+      };
     }
-    return false;
-  }, [users, setUser]);
+  }, []);
 
-  const register = useCallback((username: string, email: string, password: string): boolean => {
-    const usernameLower = username.toLowerCase();
-    if (users[usernameLower]) {
-      return false;
+  const register = useCallback(async (username: string, email: string, password: string) => {
+    try {
+      const payload = await registerRequest(username, email, password);
+      setUser(payload.user);
+      return { success: true as const };
+    } catch (error) {
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : "Unable to create account.",
+      };
     }
+  }, []);
 
-    const starterCards = getRandomCards(3, 0.2);
-    
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      username,
-      email,
-      collection: starterCards,
-      packsOpened: 0,
-      quizzesCompleted: 0,
-      correctAnswers: 0,
-    };
-
-    setUsers(prev => ({
-      ...prev,
-      [usernameLower]: { password, user: newUser }
-    }));
-    setUser(newUser);
-    return true;
-  }, [users, setUsers, setUser]);
-
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await logoutRequest();
     setUser(null);
-  }, [setUser]);
+  }, []);
 
   const addCardsToCollection = useCallback((cards: KomodoCard[]) => {
-    if (!user) return;
-    
-    setUser(prev => {
+    setUser((prev) => {
       if (!prev) return null;
-      const existingIds = new Set(prev.collection.map(c => c.id));
-      const newCards = cards.filter(c => !existingIds.has(c.id));
+      const existingIds = new Set(prev.collection.map((card) => card.id));
+      const newCards = cards.filter((card) => !existingIds.has(card.id));
+
       return {
         ...prev,
         collection: [...prev.collection, ...newCards],
-        packsOpened: prev.packsOpened + 1
+        packsOpened: prev.packsOpened + 1,
       };
     });
-  }, [user, setUser]);
+  }, []);
 
   const removeCardFromCollection = useCallback((cardId: string) => {
-    if (!user) return;
-    
-    setUser(prev => {
+    setUser((prev) => {
       if (!prev) return null;
       return {
         ...prev,
-        collection: prev.collection.filter(c => c.id !== cardId)
+        collection: prev.collection.filter((card) => card.id !== cardId),
       };
     });
-  }, [user, setUser]);
+  }, []);
 
   const updateUserStats = useCallback((updates: Partial<User>) => {
-    if (!user) return;
-    
-    setUser(prev => {
+    setUser((prev) => {
       if (!prev) return null;
       return { ...prev, ...updates };
     });
-  }, [user, setUser]);
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{
+  const value = useMemo(
+    () => ({
       user,
       isAuthenticated,
+      isSessionLoading,
       login,
       register,
       logout,
       addCardsToCollection,
       removeCardFromCollection,
-      updateUserStats
-    }}>
+      updateUserStats,
+    }),
+    [
+      user,
+      isAuthenticated,
+      isSessionLoading,
+      login,
+      register,
+      logout,
+      addCardsToCollection,
+      removeCardFromCollection,
+      updateUserStats,
+    ],
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

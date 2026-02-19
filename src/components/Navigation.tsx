@@ -73,7 +73,9 @@ export function Navigation({ onCollectionClick, onQuizClick, onPacksClick }: Nav
                     <p className="text-[#B8C1B8] text-xs">{user?.collection.length} cards</p>
                   </div>
                   <button
-                    onClick={logout}
+                    onClick={() => {
+                      void logout();
+                    }}
                     className="p-2 text-[#B8C1B8] hover:text-[#F3EFE6] hover:bg-[#243824] rounded-lg transition-colors"
                     title="Logout"
                   >

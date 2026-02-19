@@ -1,13 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { quizQuestions, getRandomCards } from '@/data/cards';
 import { useAuth } from '@/context/AuthContext';
-import type { KomodoCard } from '@/types';
+import type { KomodoCard, QuizQuestion } from '@/types';
 import { TradingCard } from './TradingCard';
 import { CheckCircle, XCircle, Trophy, RotateCcw, Package } from 'lucide-react';
 
 interface QuizProps {
   onComplete?: () => void;
 }
+
+const pickQuestions = (count: number, seed: number) => {
+  const total = quizQuestions.length;
+  const safeCount = Math.min(count, total);
+
+  return Array.from({ length: safeCount }, (_, index) => {
+    return quizQuestions[(seed + index) % total];
+  });
+};
 
 export function Quiz({ onComplete }: QuizProps) {
   const { user, addCardsToCollection, updateUserStats } = useAuth();
@@ -19,15 +28,13 @@ export function Quiz({ onComplete }: QuizProps) {
   const [quizComplete, setQuizComplete] = useState(false);
   const [earnedCards, setEarnedCards] = useState<KomodoCard[]>([]);
   const [showPackOpening, setShowPackOpening] = useState(false);
+  const [quizSeed, setQuizSeed] = useState(0);
 
-  const shuffledQuestions = useMemo(() => {
-    return [...quizQuestions].sort(() => Math.random() - 0.5).slice(0, 3);
-  }, []);
-
+  const shuffledQuestions: QuizQuestion[] = pickQuestions(3, quizSeed);
   const currentQuestion = shuffledQuestions[currentQuestionIndex];
 
   const handleAnswerSelect = (answerIndex: number) => {
-    if (showResult) return;
+    if (showResult || !currentQuestion) return;
     
     setSelectedAnswer(answerIndex);
     const correct = answerIndex === currentQuestion.correctAnswer;
@@ -85,7 +92,16 @@ export function Quiz({ onComplete }: QuizProps) {
     setCorrectCount(0);
     setQuizComplete(false);
     setEarnedCards([]);
+    setQuizSeed((prev) => (prev + 3) % quizQuestions.length);
   };
+
+  if (!currentQuestion && !quizComplete) {
+    return (
+      <div className="bg-[#243824] rounded-2xl p-8 border-2 border-[#3a4a3a] text-center text-[#B8C1B8]">
+        Preparing quiz...
+      </div>
+    );
+  }
 
   if (quizComplete) {
     return (

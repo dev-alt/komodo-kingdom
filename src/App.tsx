@@ -1,10 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { Navigation } from '@/components/Navigation';
 import { TradingCard } from '@/components/TradingCard';
-import { Quiz } from '@/components/Quiz';
-import { PackOpening } from '@/components/PackOpening';
-import { BattleArena } from '@/components/BattleArena';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuth } from '@/context/AuthContext';
 import { komodoCards } from '@/data/cards';
 import { Shield, Sword, Zap, Wind, Heart, ChevronDown, Package, BookOpen, Swords } from 'lucide-react';
@@ -13,6 +12,57 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
+
+const Quiz = lazy(() => import('@/components/Quiz').then((mod) => ({ default: mod.Quiz })));
+const PackOpening = lazy(() => import('@/components/PackOpening').then((mod) => ({ default: mod.PackOpening })));
+const BattleArena = lazy(() => import('@/components/BattleArena').then((mod) => ({ default: mod.BattleArena })));
+
+interface HeroParticle {
+  id: number;
+  left: string;
+  top: string;
+  animationDelay: string;
+  animationDuration: string;
+}
+
+const HERO_PARTICLES: HeroParticle[] = [
+  { id: 0, left: '8%', top: '18%', animationDelay: '0.3s', animationDuration: '4.5s' },
+  { id: 1, left: '16%', top: '64%', animationDelay: '1.0s', animationDuration: '6.0s' },
+  { id: 2, left: '24%', top: '30%', animationDelay: '1.8s', animationDuration: '4.2s' },
+  { id: 3, left: '33%', top: '72%', animationDelay: '2.2s', animationDuration: '5.1s' },
+  { id: 4, left: '41%', top: '44%', animationDelay: '0.6s', animationDuration: '6.4s' },
+  { id: 5, left: '49%', top: '14%', animationDelay: '2.8s', animationDuration: '4.9s' },
+  { id: 6, left: '58%', top: '80%', animationDelay: '3.1s', animationDuration: '5.5s' },
+  { id: 7, left: '66%', top: '26%', animationDelay: '1.4s', animationDuration: '6.3s' },
+  { id: 8, left: '74%', top: '58%', animationDelay: '0.9s', animationDuration: '4.7s' },
+  { id: 9, left: '82%', top: '38%', animationDelay: '2.5s', animationDuration: '5.8s' },
+  { id: 10, left: '90%', top: '70%', animationDelay: '1.7s', animationDuration: '4.3s' },
+  { id: 11, left: '96%', top: '22%', animationDelay: '3.0s', animationDuration: '6.1s' },
+];
+
+const statHighlights = [
+  { icon: Sword, name: 'Attack', desc: 'Bite force + claw combos', iconContainerClass: 'bg-red-500/20', iconClass: 'text-red-400' },
+  { icon: Shield, name: 'Defense', desc: 'Scales, dodge, terrain armor', iconContainerClass: 'bg-blue-500/20', iconClass: 'text-blue-400' },
+  { icon: Heart, name: 'Health', desc: 'Survivability and endurance', iconContainerClass: 'bg-green-500/20', iconClass: 'text-green-400' },
+  { icon: Wind, name: 'Speed', desc: 'Movement and reaction time', iconContainerClass: 'bg-yellow-500/20', iconClass: 'text-yellow-400' },
+  { icon: Zap, name: 'Energy', desc: 'Stamina for special moves', iconContainerClass: 'bg-purple-500/20', iconClass: 'text-purple-400' },
+] as const;
+
+const modalStatStyles = [
+  { icon: Sword, name: 'Attack', colorClass: 'text-red-400', bgClass: 'bg-red-900/30', valueKey: 'attack' },
+  { icon: Shield, name: 'Defense', colorClass: 'text-blue-400', bgClass: 'bg-blue-900/30', valueKey: 'defense' },
+  { icon: Heart, name: 'HP', colorClass: 'text-green-400', bgClass: 'bg-green-900/30', valueKey: 'hp' },
+  { icon: Wind, name: 'Speed', colorClass: 'text-yellow-400', bgClass: 'bg-yellow-900/30', valueKey: 'speed' },
+  { icon: Zap, name: 'Energy', colorClass: 'text-purple-400', bgClass: 'bg-purple-900/30', valueKey: 'energy' },
+] as const;
+
+function SectionFallback({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-[#3a4a3a] bg-[#1B2B1B] p-4 text-center text-[#B8C1B8]">
+      {label}
+    </div>
+  );
+}
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -26,7 +76,7 @@ function AppContent() {
   const packsRef = useRef<HTMLDivElement>(null);
   const battleRef = useRef<HTMLDivElement>(null);
 
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+  const scrollToSection = (ref: RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -37,6 +87,10 @@ function AppContent() {
 
   // GSAP Scroll Animations
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const ctx = gsap.context(() => {
       // Animate sections on scroll
       gsap.utils.toArray<HTMLElement>('.animate-section').forEach((section) => {
@@ -124,15 +178,15 @@ function AppContent() {
         
         {/* Floating particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(20)].map((_, i) => (
+          {HERO_PARTICLES.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="absolute w-2 h-2 bg-[#FF6F2C]/20 rounded-full animate-float"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${3 + Math.random() * 4}s`
+                left: particle.left,
+                top: particle.top,
+                animationDelay: particle.animationDelay,
+                animationDuration: particle.animationDuration,
               }}
             />
           ))}
@@ -340,19 +394,13 @@ function AppContent() {
               </p>
 
               <div className="space-y-4">
-                {[
-                  { icon: Sword, color: 'red', name: 'Attack', desc: 'Bite force + claw combos' },
-                  { icon: Shield, color: 'blue', name: 'Defense', desc: 'Scales, dodge, terrain armor' },
-                  { icon: Heart, color: 'green', name: 'Health', desc: 'Survivability and endurance' },
-                  { icon: Wind, color: 'yellow', name: 'Speed', desc: 'Movement and reaction time' },
-                  { icon: Zap, color: 'purple', name: 'Energy', desc: 'Stamina for special moves' }
-                ].map((stat) => (
+                {statHighlights.map((stat) => (
                   <div 
                     key={stat.name}
                     className="animate-card flex items-center gap-4 bg-[#1B2B1B] rounded-xl p-4"
                   >
-                    <div className={`w-12 h-12 bg-${stat.color}-500/20 rounded-xl flex items-center justify-center`}>
-                      <stat.icon className={`w-6 h-6 text-${stat.color}-400`} />
+                    <div className={`w-12 h-12 ${stat.iconContainerClass} rounded-xl flex items-center justify-center`}>
+                      <stat.icon className={`w-6 h-6 ${stat.iconClass}`} />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-display font-bold text-[#F3EFE6]">{stat.name}</h4>
@@ -389,7 +437,9 @@ function AppContent() {
 
           {isAuthenticated ? (
             <div className="bg-[#243824] rounded-2xl p-6 border-2 border-[#3a4a3a]">
-              <BattleArena />
+              <Suspense fallback={<SectionFallback label="Loading battle arena..." />}>
+                <BattleArena />
+              </Suspense>
             </div>
           ) : (
             <div className="bg-[#243824] rounded-2xl p-8 border-2 border-[#3a4a3a] text-center">
@@ -450,7 +500,9 @@ function AppContent() {
           </div>
 
           {isAuthenticated ? (
-            <Quiz onComplete={() => setShowQuizModal(false)} />
+            <Suspense fallback={<SectionFallback label="Loading quiz..." />}>
+              <Quiz onComplete={() => setShowQuizModal(false)} />
+            </Suspense>
           ) : (
             <div className="bg-[#243824] rounded-2xl p-8 border-2 border-[#3a4a3a] text-center">
               <BookOpen className="w-16 h-16 text-[#FF6F2C] mx-auto mb-4" />
@@ -483,7 +535,9 @@ function AppContent() {
 
           {isAuthenticated ? (
             <div className="bg-[#1B2B1B] rounded-2xl p-8 border-2 border-[#3a4a3a]">
-              <PackOpening onComplete={() => setShowPackModal(false)} />
+              <Suspense fallback={<SectionFallback label="Loading pack opening..." />}>
+                <PackOpening onComplete={() => setShowPackModal(false)} />
+              </Suspense>
             </div>
           ) : (
             <div className="bg-[#1B2B1B] rounded-2xl p-8 border-2 border-[#3a4a3a] text-center">
@@ -582,17 +636,13 @@ function AppContent() {
                   <div className="border-t border-[#3a4a3a] pt-4">
                     <h4 className="font-display text-[#F3EFE6] mb-3 text-lg">Stats</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {[
-                        { icon: Sword, color: 'red', name: 'Attack', value: selectedCard.stats.attack },
-                        { icon: Shield, color: 'blue', name: 'Defense', value: selectedCard.stats.defense },
-                        { icon: Heart, color: 'green', name: 'HP', value: selectedCard.stats.hp },
-                        { icon: Wind, color: 'yellow', name: 'Speed', value: selectedCard.stats.speed },
-                        { icon: Zap, color: 'purple', name: 'Energy', value: selectedCard.stats.energy }
-                      ].map(stat => (
-                        <div key={stat.name} className={`bg-${stat.color}-900/30 rounded-lg p-2 text-center`}>
-                          <stat.icon className={`w-4 h-4 text-${stat.color}-400 mx-auto mb-1`} />
-                          <p className={`text-${stat.color}-400 text-xs`}>{stat.name}</p>
-                          <p className={`font-accent text-xl text-${stat.color}-400`}>{stat.value}</p>
+                      {modalStatStyles.map((stat) => (
+                        <div key={stat.name} className={`${stat.bgClass} rounded-lg p-2 text-center`}>
+                          <stat.icon className={`w-4 h-4 ${stat.colorClass} mx-auto mb-1`} />
+                          <p className={`${stat.colorClass} text-xs`}>{stat.name}</p>
+                          <p className={`font-accent text-xl ${stat.colorClass}`}>
+                            {selectedCard.stats[stat.valueKey]}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -612,7 +662,9 @@ function AppContent() {
               Komodo Quiz
             </DialogTitle>
           </DialogHeader>
-          <Quiz onComplete={() => setShowQuizModal(false)} />
+          <Suspense fallback={<SectionFallback label="Loading quiz..." />}>
+            <Quiz onComplete={() => setShowQuizModal(false)} />
+          </Suspense>
         </DialogContent>
       </Dialog>
 
@@ -624,7 +676,9 @@ function AppContent() {
               Open a Pack
             </DialogTitle>
           </DialogHeader>
-          <PackOpening onComplete={() => setShowPackModal(false)} />
+          <Suspense fallback={<SectionFallback label="Loading pack opening..." />}>
+            <PackOpening onComplete={() => setShowPackModal(false)} />
+          </Suspense>
         </DialogContent>
       </Dialog>
 
@@ -636,7 +690,9 @@ function AppContent() {
               Battle Arena
             </DialogTitle>
           </DialogHeader>
-          <BattleArena />
+          <Suspense fallback={<SectionFallback label="Loading battle arena..." />}>
+            <BattleArena />
+          </Suspense>
         </DialogContent>
       </Dialog>
     </div>
@@ -646,7 +702,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

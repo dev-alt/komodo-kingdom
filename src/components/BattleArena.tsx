@@ -28,10 +28,14 @@ export function BattleArena() {
 
   const selectCard = (card: KomodoCard) => {
     setPlayerCard(card);
-    // Random opponent card
-    const randomOpponent = komodoCards[Math.floor(Math.random() * komodoCards.length)];
-    setOpponentCard(randomOpponent);
+    const selectedIndex = komodoCards.findIndex((entry) => entry.id === card.id);
+    const opponentIndex = selectedIndex >= 0 ? (selectedIndex + 1) % komodoCards.length : 0;
+    setOpponentCard(komodoCards[opponentIndex]);
     setShowCardSelect(false);
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
     
     // Animate cards entering
     setTimeout(() => {
@@ -53,6 +57,12 @@ export function BattleArena() {
     
     setIsBattling(true);
     setBattleResult(null);
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      calculateBattleResult();
+      setIsBattling(false);
+      return;
+    }
 
     // Battle animation sequence
     const tl = gsap.timeline({

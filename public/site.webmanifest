@@ -1,0 +1,16 @@
+{
+  "name": "Komodo Kingdom",
+  "short_name": "Komodo",
+  "description": "Collect dragons, open packs, and battle your way through Komodo Kingdom.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B2B1B",
+  "theme_color": "#1B2B1B",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

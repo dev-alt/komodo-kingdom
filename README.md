@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# Komodo Kingdom
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Komodo Kingdom is a Vite + React + TypeScript trading-card web app with quiz, pack opening, and battle flows.
 
-Currently, two official plugins are available:
+## Local Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Create env file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Start dev server:
+   ```bash
+   npm run dev
+   ```
 
-## React Compiler
+## Required Runtime Config
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `VITE_AUTH_BASE_URL`: Base URL for the backend auth API (default: `/api`).
+- `VITE_MONITORING_ENDPOINT`: Optional endpoint that accepts client error reports.
 
-## Expanding the ESLint configuration
+The frontend now expects server-side auth endpoints:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `POST /auth/login`
+- `POST /auth/register`
+- `POST /auth/logout`
+- `GET /auth/me`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+All requests are sent with `credentials: "include"` for secure cookie-based sessions.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Quality Gates
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run budget`
+- `npm run check` (runs all checks above)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## CI
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+GitHub Actions workflow: `.github/workflows/ci.yml`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+PRs and pushes to `main` run lint, typecheck, tests, build, and bundle budget checks.
+
+## Deployment Notes
+
+- Update canonical and sitemap host values in `index.html`, `public/robots.txt`, and `public/sitemap.xml`.
+- The `dist/` folder is treated as a build artifact and should not be committed.
+- Configure production monitoring by setting `VITE_MONITORING_ENDPOINT`.

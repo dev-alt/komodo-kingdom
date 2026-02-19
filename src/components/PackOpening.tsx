@@ -10,6 +10,17 @@ interface PackOpeningProps {
   onComplete?: () => void;
 }
 
+const getRarityColor = (rarity: string) => {
+  switch (rarity) {
+    case 'common': return '#B8C1B8';
+    case 'uncommon': return '#4ADE80';
+    case 'rare': return '#60A5FA';
+    case 'epic': return '#A78BFA';
+    case 'legendary': return '#FF6F2C';
+    default: return '#B8C1B8';
+  }
+};
+
 export function PackOpening({ onComplete }: PackOpeningProps) {
   const { addCardsToCollection } = useAuth();
   const [stage, setStage] = useState<'intro' | 'shaking' | 'burst' | 'revealing' | 'revealed'>('intro');
@@ -21,11 +32,16 @@ export function PackOpening({ onComplete }: PackOpeningProps) {
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const startOpening = () => {
-    setStage('shaking');
-    
-    // Generate cards
     const newCards = getRandomCards(3, 0.1);
     setCards(newCards);
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setRevealedCount(newCards.length);
+      setStage('revealed');
+      return;
+    }
+
+    setStage('shaking');
     
     // Shake animation
     if (packRef.current) {
@@ -143,17 +159,6 @@ export function PackOpening({ onComplete }: PackOpeningProps) {
       });
     }
   }, [stage, cards]);
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case 'common': return '#B8C1B8';
-      case 'uncommon': return '#4ADE80';
-      case 'rare': return '#60A5FA';
-      case 'epic': return '#A78BFA';
-      case 'legendary': return '#FF6F2C';
-      default: return '#B8C1B8';
-    }
-  };
 
   const handleAddToCollection = () => {
     addCardsToCollection(cards);

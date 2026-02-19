@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
-  const { login, register } = useAuth();
+  const { login, register, isSessionLoading } = useAuth();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +27,10 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -38,13 +42,13 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
       return;
     }
 
-    const success = login(loginUsername, loginPassword);
-    if (success) {
+    const result = await login(loginUsername, loginPassword);
+    if (result.success) {
       onClose();
       setLoginUsername('');
       setLoginPassword('');
     } else {
-      setError('Invalid username or password');
+      setError(result.error ?? 'Invalid username or password');
     }
     setIsLoading(false);
   };
@@ -72,21 +76,28 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
       return;
     }
 
-    const success = register(registerUsername, registerEmail, registerPassword);
-    if (success) {
+    const result = await register(registerUsername, registerEmail, registerPassword);
+    if (result.success) {
       onClose();
       setRegisterUsername('');
       setRegisterEmail('');
       setRegisterPassword('');
       setRegisterConfirmPassword('');
     } else {
-      setError('Username already exists');
+      setError(result.error ?? 'Unable to create account');
     }
     setIsLoading(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="bg-[#1B2B1B] border-2 border-[#3a4a3a] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -153,35 +164,12 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
               </div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isSessionLoading}
                 className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Logging in...' : 'Login'}
               </button>
             </form>
-            
-            {/* Test Login Button */}
-            <div className="mt-4 pt-4 border-t border-[#3a4a3a]">
-              <p className="text-[#B8C1B8] text-xs text-center mb-2">Or try with a test account</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginUsername('testuser');
-                  setLoginPassword('test123');
-                  setTimeout(() => {
-                    const success = login('testuser', 'test123');
-                    if (success) {
-                      onClose();
-                      setLoginUsername('');
-                      setLoginPassword('');
-                    }
-                  }, 100);
-                }}
-                className="w-full py-2 px-4 bg-[#243824] border border-[#3a4a3a] rounded-lg text-[#B8C1B8] hover:text-[#F3EFE6] hover:border-[#FF6F2C] transition-colors text-sm"
-              >
-                Login as Test User (testuser / test123)
-              </button>
-            </div>
           </TabsContent>
 
           <TabsContent value="register" className="mt-4">
@@ -237,7 +225,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
               </div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isSessionLoading}
                 className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Creating account...' : 'Create Account'}
@@ -245,6 +233,12 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
             </form>
           </TabsContent>
         </Tabs>
+
+        <p className="text-xs text-[#B8C1B8] text-center mt-2">
+          {isSessionLoading
+            ? 'Checking active session...'
+            : 'Authentication is powered by your backend API endpoint.'}
+        </p>
       </DialogContent>
     </Dialog>
   );
